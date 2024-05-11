@@ -1,4 +1,5 @@
 export interface FanState {
+    id: string;
     on: boolean;
     auto: boolean;
     reverse: boolean;

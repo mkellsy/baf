@@ -165,7 +165,10 @@ export class Connection extends EventEmitter<{
         if (!this.equals(this.state.fan, results.fan.state)) {
             this.state.fan = results.fan.state;
 
-            this.emit("Response", "FanState", this.state.fan as FanState);
+            this.emit("Response", "FanState", {
+                id: this.uuid,
+                ...this.state.fan,
+             } as FanState);
         }
     }
 
@@ -181,7 +184,11 @@ export class Connection extends EventEmitter<{
         if (!this.equals(this.state[target], results.light.state)) {
             this.state[target] = results.light.state;
 
-            this.emit("Response", "LightState", { target, ...this.state[target] } as LightState);
+            this.emit("Response", "LightState", {
+                id: this.uuid,
+                target,
+                ...this.state[target],
+            } as LightState);
         }
     }
 
@@ -197,7 +204,10 @@ export class Connection extends EventEmitter<{
         if (!this.equals(this.state.sensor, results.sensor.state)) {
             this.state.sensor = results.sensor.state;
 
-            this.emit("Response", "SensorState", this.state.sensor as SensorState);
+            this.emit("Response", "SensorState", {
+                id: this.uuid,
+                ...this.state.sensor,
+            } as SensorState);
         }
     }
 }
