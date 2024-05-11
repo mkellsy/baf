@@ -17,7 +17,7 @@ export class Connection extends EventEmitter<{
     private socket?: Net.Socket;
     private teardown: boolean = false;
 
-    private id: string;
+    private uuid: string;
     private name: string;
     private model: string;
     private host: string;
@@ -30,12 +30,16 @@ export class Connection extends EventEmitter<{
     constructor(host: string, id: string, name: string, model: string) {
         super();
 
-        this.id = id;
+        this.uuid = id;
         this.name = name;
         this.model = model;
 
         this.host = host;
         this.port = 31415;
+    }
+
+    public get id(): string {
+        return this.uuid;
     }
 
     public async connect(): Promise<void> {
@@ -141,7 +145,7 @@ export class Connection extends EventEmitter<{
             this.device = this.current;
 
             this.emit("Response", "Capabilities", {
-                id: this.id,
+                id: this.uuid,
                 name: this.name,
                 model: this.model,
                 ...this.device,
