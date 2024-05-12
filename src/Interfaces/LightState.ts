@@ -1,6 +1,6 @@
 export interface LightState {
     id: string;
-    target: "uplight" | "downlight";
+    target: "uplight" | "downlight" | "uvc";
     level: number;
     luminance:  number;
     on: boolean;

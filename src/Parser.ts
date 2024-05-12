@@ -309,14 +309,15 @@ export abstract class Parser {
                                     [data, numeric] = Parser.getValue(data);
                                     break;
 
-                                case 172: // fan uvc state
+                                case 172: // uvc state
                                     [data, numeric] = Parser.getValue(data);
 
-                                    results.fan = { ...results.fan };
+                                    results.light = { ...results.light };
 
-                                    results.fan.state = {
-                                        ...results.fan.state,
-                                        uvc: numeric >= 1,
+                                    results.light = {
+                                        ...results.light,
+                                        target: "uvc",
+                                        on: numeric >= 1,
                                     };
 
                                     break;
