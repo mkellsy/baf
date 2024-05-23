@@ -45,23 +45,27 @@ export class Connection extends EventEmitter<{
     public async connect(): Promise<void> {
         this.teardown = false;
 
-        this.socket = Net.connect(
-            {
-                host: this.host,
-                port: this.port,
-                family: 4,
-            },
-            () => {
-                this.socket?.on("data", this.onSocketData);
-                this.socket?.on("error", this.onSocketError);
-                this.socket?.on("end", this.onSocketDisconnect);
+        return new Promise((resolve) => {
+            this.socket = Net.connect(
+                {
+                    host: this.host,
+                    port: this.port,
+                    family: 4,
+                },
+                () => {
+                    this.socket!.on("data", this.onSocketData);
+                    this.socket!.on("error", this.onSocketError);
+                    this.socket!.on("end", this.onSocketDisconnect);
 
-                this.emit("Connect", this);
-            }
-        );
+                    this.emit("Connect", this);
+
+                    resolve();
+                }
+            );
+        });
     }
 
-    public disconnect() {
+    public disconnect(): void {
         this.teardown = true;
         this.socket?.destroy();
     }
@@ -162,14 +166,12 @@ export class Connection extends EventEmitter<{
             return;
         }
 
-        if (!this.equals(this.state.fan, results.fan.state)) {
-            this.state.fan = results.fan.state;
+        this.state.fan = results.fan.state;
 
-            this.emit("Response", "FanState", {
-                id: this.uuid,
-                ...this.state.fan,
-             } as FanState);
-        }
+        this.emit("Response", "FanState", {
+            id: this.uuid,
+            ...this.state.fan,
+        } as FanState);
     }
 
     private updateLightState(target: "downlight" | "uplight", results: Record<string, any>): void {
@@ -177,19 +179,17 @@ export class Connection extends EventEmitter<{
             return;
         }
 
-        if (results.light.target !== target || results.light?.state == null) {
+        if (results.light?.target !== target || results.light.state == null) {
             return;
         }
 
-        if (!this.equals(this.state[target], results.light.state)) {
-            this.state[target] = results.light.state;
+        this.state[target] = results.light.state;
 
-            this.emit("Response", "LightState", {
-                id: this.uuid,
-                target,
-                ...this.state[target],
-            } as LightState);
-        }
+        this.emit("Response", "LightState", {
+            id: this.uuid,
+            target,
+            ...this.state[target],
+        } as LightState);
     }
 
     private updateSensorState(results: Record<string, any>): void {
@@ -201,13 +201,11 @@ export class Connection extends EventEmitter<{
             return;
         }
 
-        if (!this.equals(this.state.sensor, results.sensor.state)) {
-            this.state.sensor = results.sensor.state;
+        this.state.sensor = results.sensor.state;
 
-            this.emit("Response", "SensorState", {
-                id: this.uuid,
-                ...this.state.sensor,
-            } as SensorState);
-        }
+        this.emit("Response", "SensorState", {
+            id: this.uuid,
+            ...this.state.sensor,
+        } as SensorState);
     }
 }
