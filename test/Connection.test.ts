@@ -5,7 +5,6 @@ import sinon from "sinon";
 import sinonChai from "sinon-chai";
 
 import { Connection } from "../src/Connection";
-import { Parser } from "../src/Parser";
 
 chai.use(sinonChai);
 registerNode();
