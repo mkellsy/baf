@@ -1,6 +1,17 @@
 export abstract class Parser {
     private static fragment: Buffer = Buffer.alloc(0);
 
+    /**
+     * Converts a number array to a hex binary array.
+     *
+     * ```js
+     * const stuffed = Parser.stuff([0x00, 0x01, 0x02]);
+     * ```
+     *
+     * @param data A hex number array.
+     *
+     * @returns An array of numbers.
+     */
     public static stuff(data: number[]): number[] {
         const result: number[] = [];
 
@@ -21,6 +32,19 @@ export abstract class Parser {
         return result;
     }
 
+    /**
+     * Converts a binary buffer from the device to a hex number array.
+     *
+     * ```js
+     * const unstuffed = Parser.unstuff(
+     *     Buffer.from([0x00, 0x01, 0x02])
+     * );
+     * ```
+     *
+     * @param data A binary buffer.
+     *
+     * @returns A hex buffer array.
+     */
     public static unstuff(data: Buffer): Buffer {
         const result: number[] = [];
 
@@ -44,6 +68,19 @@ export abstract class Parser {
         return Buffer.from(result);
     }
 
+    /**
+     * Combines seperate chunked messages from the device into a single object.
+     *
+     * ```js
+     * const fragments = Parser.chunkify(
+     *     Buffer.from([0x00, 0x01, 0x02])
+     * );
+     * ```
+     *
+     * @param data A binary buffer from the device.
+     *
+     * @returns An object containing the chunks and a count.
+     */
     public static chunkify(data: Buffer): { chunks: Buffer[], count: number } {
         let index = 0;
         let count = 0;
@@ -89,6 +126,20 @@ export abstract class Parser {
         return { chunks, count };
     }
 
+    /**
+     * Reads in a hex buffer array from the device and translates it into a
+     * response payload.
+     *
+     * ```js
+     * const response = Parser.parse(
+     *     Buffer.from([0x00, 0x01, 0x02])
+     * ) as FanState;
+     * ```
+     *
+     * @param data A binary buffer, unstuffed.
+     *
+     * @returns An object that can be casted into a response type interface.
+     */
     public static parse(data: Buffer): Record<string, any> {
         let type: number;
         let field: number;
@@ -514,6 +565,9 @@ export abstract class Parser {
         return results;
     }
 
+    /*
+     * Fetches a string value from binary data.
+     */
     private static getString(data: Buffer): [Buffer, string] {
         let length: number;
     
@@ -522,6 +576,9 @@ export abstract class Parser {
         return [data.subarray(length), data.subarray(0, length).toString()];
     }
 
+    /*
+     * Fetches a numeric value from binary data.
+     */
     private static getValue(data: Buffer): [Buffer, number] {
         let length: number;
     
@@ -530,6 +587,9 @@ export abstract class Parser {
         return [data, length];
     }
 
+    /*
+     * Advances the binary data iteration and ignores the data.
+     */
     private static advance(data: Buffer, type: number) {
         if (type === 0) {
             let value: number;
@@ -550,6 +610,9 @@ export abstract class Parser {
         return data;
     }
 
+    /*
+     * Converts the binary data into a type and field.
+     */
     private static varint(data: Buffer): [Buffer, number] {
         let key = 0;
     
@@ -572,6 +635,9 @@ export abstract class Parser {
         return [data.subarray(fields.length), key];
     }
 
+    /*
+     * Deconstructs a binary data field.
+     */
     private static deconstruct(data: Buffer): [Buffer, number, number] {
         let key = 0;
     

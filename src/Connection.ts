@@ -8,6 +8,9 @@ import { Parser } from "./Parser";
 import { ResponseTypes } from "./Interfaces/ResponseTypes";
 import { SensorState } from "./Interfaces/SensorState";
 
+/**
+ * Connects to a device with the provided ip address, id, name and model.
+ */
 export class Connection extends EventEmitter<{
     Connect: (connection: Connection) => void;
     Disconnect: () => void;
@@ -27,6 +30,23 @@ export class Connection extends EventEmitter<{
     private current?: Partial<Capabilities>;
     private state: { fan?: FanState; sensor?: SensorState; downlight?: LightState; uplight?: LightState } = {};
 
+    /**
+     * Creates a new connection to a device.
+     *
+     * ```js
+     * const connection = new Connection(
+     *     "192.168.1.1",
+     *     "12:34:65:78",
+     *     "My Device",
+     *     "Haiku"
+     * );
+     * ```
+     *
+     * @param host The ip address of the device.
+     * @param id The id of the device.
+     * @param name The name of the device.
+     * @param model The model of the device.
+     */
     constructor(host: string, id: string, name: string, model: string) {
         super();
 
@@ -38,10 +58,20 @@ export class Connection extends EventEmitter<{
         this.port = 31415;
     }
 
+    /**
+     * The id of the device.
+     */
     public get id(): string {
         return this.uuid;
     }
 
+    /**
+     * Asyncronously connects to a device.
+     *
+     * ```js
+     * await connection.connect();
+     * ```
+     */
     public async connect(): Promise<void> {
         this.teardown = false;
 
@@ -65,11 +95,27 @@ export class Connection extends EventEmitter<{
         });
     }
 
+    /**
+     * Disconnects from a device.
+     *
+     * ```js
+     * connection.disconnect();
+     * ```
+     */
     public disconnect(): void {
         this.teardown = true;
         this.socket?.destroy();
     }
 
+    /**
+     * Writes a command to a device.
+     *
+     * ```js
+     * connection.write([0x01, 0x02, 0x03]);
+     * ```
+     *
+     * @param buffer The command as a hex number array.
+     */
     public write(buffer: number[]): void {
         const stuffed = Parser.stuff(buffer);
         const marked = Buffer.from([0xc0].concat(stuffed).concat([0xc0]));
@@ -77,6 +123,9 @@ export class Connection extends EventEmitter<{
         this.socket?.write(marked);
     }
 
+    /*
+     * Parses data messages from the socket.
+     */
     private onSocketData = (data: Buffer): void => {
         let results: Record<string, any> = {};
 
@@ -99,6 +148,9 @@ export class Connection extends EventEmitter<{
         this.updateSensorState(results);
     };
 
+    /*
+     * Reconnects to the device if the connection is lost.
+     */
     private onSocketDisconnect = (): void => {
         if (!this.teardown) {
             this.connect();
@@ -107,14 +159,23 @@ export class Connection extends EventEmitter<{
         }
     };
 
+    /*
+     * Emits an error event when the socket errors.
+     */
     private onSocketError = (error: Error): void => {
         this.emit("Error", error);
     };
 
+    /*
+     * Compares two objects to see if they are equal.
+     */
     private equals(left: any, right: any): boolean {
         return JSON.stringify(left) === JSON.stringify(right);
     }
 
+    /*
+     * Checks if a device supports a feature.
+     */
     private supported(target: keyof Capabilities): boolean {
         if (this.device == null || this.device[target] === false) {
             return false;
@@ -123,6 +184,9 @@ export class Connection extends EventEmitter<{
         return true;
     }
 
+    /*
+     * Updates the device state.
+     */
     private updateDevice(results: Record<string, any>): void {
         if (results.firmware) {
             this.current = { ...this.current, firmware: results.firmware };
@@ -157,6 +221,9 @@ export class Connection extends EventEmitter<{
         }
     }
 
+    /*
+     * Updates the fan state.
+     */
     private updateFanState(results: Record<string, any>): void {
         if (!this.supported("fan")) {
             return;
@@ -174,6 +241,9 @@ export class Connection extends EventEmitter<{
         } as FanState);
     }
 
+    /*
+     * Updates the light state.
+     */
     private updateLightState(target: "downlight" | "uplight", results: Record<string, any>): void {
         if (!this.supported(target)) {
             return;
@@ -192,6 +262,9 @@ export class Connection extends EventEmitter<{
         } as LightState);
     }
 
+    /*
+     * Updates the sensor state.
+     */
     private updateSensorState(results: Record<string, any>): void {
         if (!this.supported("temperature") && !this.supported("humidity")) {
             return;
