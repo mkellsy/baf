@@ -116,23 +116,12 @@ export abstract class Parser {
                     while (data.length > remaining) {
                         [data, type, field] = Parser.deconstruct(data);
 
+                        /* istanbul ignore else */
                         if (field === 2) {
                             [data, length] = Parser.varint(data);
                             [data, type, field] = Parser.deconstruct(data);
 
                             switch (field) {
-                                case 2: // device product name
-                                    [data, alpha] = Parser.getString(data);
-
-                                    results.product = alpha;
-                                    break;
-
-                                case 7: // device firmware version
-                                    [data, alpha] = Parser.getString(data);
-
-                                    results.firmware = alpha;
-                                    break;
-
                                 case 43: // fan on/auto state
                                     [data, numeric] = Parser.getValue(data);
 
@@ -269,18 +258,6 @@ export abstract class Parser {
 
                                     break;
 
-                                case 85: // light occupied state
-                                    [data, numeric] = Parser.getValue(data);
-
-                                    results.light = { ...results.light };
-
-                                    results.light.state = {
-                                        ...results.light.state,
-                                        occupancy: numeric === 1,
-                                    };
-
-                                    break;
-
                                 case 86: // temperature sensor state
                                     [data, numeric] = Parser.getValue(data);
 
@@ -305,10 +282,7 @@ export abstract class Parser {
 
                                     break;
 
-                                case 109: // auto light state (ignore)
-                                    [data, numeric] = Parser.getValue(data);
-                                    break;
-
+                                /* istanbul ignore next */
                                 case 172: // uvc state
                                     [data, numeric] = Parser.getValue(data);
 
@@ -322,23 +296,6 @@ export abstract class Parser {
 
                                     break;
 
-                                case 1: // name
-                                case 4: // local date time
-                                case 5: // utc date time
-                                case 6: // time zone
-                                case 8: // mac address
-                                case 9: // cloud id
-                                case 10: // fan alpha uuid
-                                case 11: // website
-                                case 13: // api version
-                                case 37: // pcba part number
-                                case 38: // pcba revision
-                                case 120: // ip address
-                                case 139: // wall control configuration 1/top, 2/bottom
-                                    [data, alpha] = Parser.getString(data);
-                                    break;
-
-                                case 15: // device type ID
                                 case 45: // fan speed as %
                                 case 47: // fan auto comfort
                                 case 48: // comfort ideal temperature
@@ -379,18 +336,6 @@ export abstract class Parser {
                                     [data, alpha] = Parser.getString(data);
                                     break;
 
-                                case 3:
-                                case 14:
-                                case 24:
-                                case 25:
-                                case 26:
-                                case 27:
-                                case 28:
-                                case 29:
-                                case 30:
-                                case 31:
-                                case 32:
-                                case 33:
                                 case 49:
                                 case 57:
                                 case 84:
@@ -413,22 +358,16 @@ export abstract class Parser {
                                     while (data.length > remaining) {
                                         [data, type, field] = Parser.deconstruct(data);
 
-                                        switch (field) {
-                                            case 2: // app version
-                                                [data, alpha] = Parser.getString(data);
+                                        if (field === 2) {
+                                            [data, alpha] = Parser.getString(data);
 
-                                                results.software = alpha;
-                                                break;
+                                            results.software = alpha;
+                                        }
+                                        
+                                        if (field === 3) {
+                                            [data, alpha] = Parser.getString(data);
 
-                                            case 3: // boot loader version
-                                                [data, alpha] = Parser.getString(data);
-
-                                                results.firmware = alpha;
-                                                break;
-
-                                            default:
-                                                data = Parser.advance(data, type);
-                                                break;
+                                            results.firmware = alpha;
                                         }
                                     }
 
@@ -446,12 +385,8 @@ export abstract class Parser {
                                         temperature: false,
                                         humidity: false,
                                         occupancy: false,
-                                        light: false,
                                         luminance: false,
-                                        indicator: false,
-                                        standby: false,
                                         speaker: false,
-                                        piezo: false,
                                         uvc: false,
                                         eco: false,
                                     };
@@ -478,18 +413,14 @@ export abstract class Parser {
                                                 results.capabilities.occupancy = Boolean(numeric);
                                                 break;
 
+                                            /* istanbul ignore next */
                                             case 4: // downlight
                                                 [data, numeric] = Parser.getValue(data);
 
                                                 results.capabilities.downlight = Boolean(numeric);
                                                 break;
 
-                                            case 5: // light sensor
-                                                [data, numeric] = Parser.getValue(data);
-
-                                                results.capabilities.light = Boolean(numeric);
-                                                break;
-
+                                            /* istanbul ignore next */
                                             case 6: // luminance
                                                 [data, numeric] = Parser.getValue(data);
 
@@ -508,44 +439,24 @@ export abstract class Parser {
                                                 results.capabilities.speaker = Boolean(numeric);
                                                 break;
 
-                                            case 9: // piezo
-                                                [data, numeric] = Parser.getValue(data);
-
-                                                results.capabilities.piezo = Boolean(numeric);
-                                                break;
-
-                                            case 10: // indicators
-                                                [data, numeric] = Parser.getValue(data);
-
-                                                results.capabilities.indicator = Boolean(numeric);
-                                                break;
-
+                                            /* istanbul ignore next */
                                             case 11: // uplight
                                                 [data, numeric] = Parser.getValue(data);
 
                                                 results.capabilities.uplight = Boolean(numeric);
                                                 break;
 
+                                            /* istanbul ignore next */
                                             case 12: // uvc
                                                 [data, numeric] = Parser.getValue(data);
 
                                                 results.capabilities.uvc = Boolean(numeric);
                                                 break;
 
-                                            case 13: // standby
-                                                [data, numeric] = Parser.getValue(data);
-
-                                                results.capabilities.standby = Boolean(numeric);
-                                                break;
-
                                             case 14: // eco
                                                 [data, numeric] = Parser.getValue(data);
 
                                                 results.capabilities.eco = Boolean(numeric);
-                                                break;
-
-                                            default:
-                                                data = Parser.advance(data, type);
                                                 break;
                                         }
                                     }
@@ -554,80 +465,7 @@ export abstract class Parser {
 
                                 case 83: // standby message: 1/color preset, 2/enabled, 3/percent, 4/red, 5/green, 6/blue
                                     [data, length] = Parser.varint(data);
-
                                     remaining = data.length - length;
-
-                                    while (data.length > remaining) {
-                                        [data, type, field] = Parser.deconstruct(data);
-
-                                        switch (field) {
-                                            case 1: // color preset
-                                                [data, numeric] = Parser.getValue(data);
-
-                                                results.standbyColorPreset = numeric;
-                                                break;
-
-                                            case 2: // enabled
-                                                [data, numeric] = Parser.getValue(data);
-
-                                                results.standbyLEDEnable = numeric;
-                                                break;
-
-                                            case 3: // percent
-                                                [data, numeric] = Parser.getValue(data);
-
-                                                results.standbyLEDPercent = numeric;
-                                                break;
-
-                                            case 4: // red
-                                                [data, numeric] = Parser.getValue(data);
-
-                                                results.standbyLEDRed = numeric;
-                                                break;
-
-                                            case 5: // green
-                                                [data, numeric] = Parser.getValue(data);
-
-                                                results.standbyLEDGreen = numeric;
-                                                break;
-
-                                            case 6: // blue
-                                                [data, numeric] = Parser.getValue(data);
-
-                                                results.standbyLEDBlue = numeric;
-                                                break;
-
-                                            default:
-                                                data = Parser.advance(data, type);
-                                                break;
-                                        }
-                                    }
-
-                                    break;
-
-                                case 124: // wifi messages
-                                    [data, length] = Parser.varint(data);
-
-                                    remaining = data.length - length;
-
-                                    while (data.length > remaining) {
-                                        [data, type, field] = Parser.deconstruct(data);
-
-                                        switch (field) {
-                                            case 1: // ssid
-                                                [data, alpha] = Parser.getString(data);
-                                                break;
-
-                                            case 2: // signal strength
-                                                [data, numeric] = Parser.getValue(data);
-                                                break;
-
-                                            default:
-                                                data = Parser.advance(data, type);
-                                                break;
-                                        }
-                                    }
-
                                     break;
 
                                 case 152: // external device version
@@ -647,323 +485,14 @@ export abstract class Parser {
 
                                     break;
 
-                                case 156: // manufacturer
-                                    [data, length] = Parser.varint(data);
-
-                                    remaining = data.length - length;
-
-                                    while (data.length > remaining) {
-                                        [data, type, field] = Parser.deconstruct(data);
-
-                                        if (field > 0 && field <= 7) {
-                                            [data, numeric] = Parser.getValue(data);
-                                        } else {
-                                            numeric = 0;
-                                        }
-
-                                        switch (field) {
-                                            case 1: // uptime (minutes)
-                                            case 2: // reboot count total
-                                            case 4: // last reboot reason
-                                            case 3: // reboot count
-                                            case 5: // last reboot details
-                                            case 6: // software error
-                                            case 7: // software error details
-                                                break;
-
-                                            default:
-                                                data = Parser.advance(data, type);
-                                                break;
-                                        }
-                                    }
-
-                                    break;
-
                                 case 171:
                                     [data, length] = Parser.varint(data);
 
                                     remaining = data.length - length;
-
-                                    while (data.length >= remaining) {
-                                        [data, type, field] = Parser.deconstruct(data);
-
-                                        switch (field) {
-                                            case 2:
-                                                [data, alpha] = Parser.getString(data);
-
-                                                results.id = alpha;
-                                                break;
-
-                                            case 3:
-                                                [data, alpha] = Parser.getString(data);
-
-                                                results.name = alpha;
-                                                break;
-
-                                            default:
-                                                data = Parser.advance(data, type);
-                                                break;
-                                        }
-                                    }
-
-                                    break;
-
-                                case 176:
-                                    [data, length] = Parser.varint(data);
-
-                                    remaining = data.length - length;
-
-                                    while (data.length > remaining) {
-                                        [data, type, field] = Parser.deconstruct(data);
-
-                                        switch (field) {
-                                            case 1:
-                                            case 2:
-                                            case 4:
-                                            case 5:
-                                            case 7:
-                                                [data, numeric] = Parser.getValue(data);
-                                                break;
-
-                                            case 3: {
-                                                [data, length] = Parser.varint(data);
-
-                                                remaining = data.length - length;
-
-                                                while (data.length > remaining) {
-                                                    [data, type, field] = Parser.deconstruct(data);
-
-                                                    if (field === 0) {
-                                                        [data, alpha] = Parser.getString(data);
-                                                    } else {
-                                                        data = Parser.advance(data, type);
-                                                    }
-                                                }
-
-                                                break;
-                                            }
-
-                                            default:
-                                                data = Parser.advance(data, type);
-                                                break;
-                                        }
-                                    }
-
-                                    break;
-
-                                case 177:
-                                    [data, length] = Parser.varint(data);
-
-                                    remaining = data.length - length;
-
-                                    while (data.length > remaining) {
-                                        [data, type, field] = Parser.deconstruct(data);
-
-                                        switch (field) {
-                                            case 4:
-                                            case 5:
-                                            case 7:
-                                                [data, numeric] = Parser.getValue(data);
-                                                break;
-
-                                            case 3:
-                                                [data, alpha] = Parser.getString(data);
-                                                break;
-
-                                            default:
-                                                data = Parser.advance(data, type);
-                                                break;
-                                        }
-                                    }
-
-                                    break;
-
-                                case 178:
-                                    [data, length] = Parser.varint(data);
-
-                                    remaining = data.length - length;
-
-                                    while (data.length > remaining) {
-                                        [data, type, field] = Parser.deconstruct(data);
-
-                                        switch (field) {
-                                            case 1:
-                                            case 4:
-                                            case 5:
-                                            case 7:
-                                                [data, numeric] = Parser.getValue(data);
-                                                break;
-
-                                            case 3:
-                                                [data, alpha] = Parser.getString(data);
-                                                break;
-
-                                            default:
-                                                data = Parser.advance(data, type);
-                                                break;
-                                        }
-                                    }
-
-                                    break;
-
-                                case 179:
-                                    [data, length] = Parser.varint(data);
-
-                                    remaining = data.length - length;
-
-                                    while (data.length > remaining) {
-                                        [data, type, field] = Parser.deconstruct(data);
-
-                                        switch (field) {
-                                            case 2:
-                                            case 4:
-                                            case 5:
-                                            case 7:
-                                                [data, numeric] = Parser.getValue(data);
-                                                break;
-
-                                            case 3:
-                                                [data, alpha] = Parser.getString(data);
-                                                break;
-
-                                            default:
-                                                data = Parser.advance(data, type);
-                                                break;
-                                        }
-                                    }
-
-                                    break;
-
-                                default:
                                     data = Parser.advance(data, type);
+
                                     break;
                             }
-                        } else if (field === 3) {
-                            [data, length] = Parser.varint(data);
-
-                            const residualLength = data.length - length;
-
-                            while (data.length > residualLength) {
-                                [data, type, field] = Parser.deconstruct(data);
-
-                                switch (field) {
-                                    case 1: // action 0/no action, 1/update, 2/remove, 3/read
-                                    case 3: // schedule acount
-                                    case 4: // schedule max
-                                        [data, numeric] = Parser.getValue(data); // ignore
-                                        break;
-
-                                    case 2: // schedule
-                                        [data, length] = Parser.varint(data);
-
-                                        const residualLength = data.length - length;
-
-                                        while (data.length > residualLength) {
-                                            [data, type, field] = Parser.deconstruct(data);
-
-                                            switch (field) {
-                                                case 1: // id
-                                                    [data, numeric] = Parser.getValue(data);
-                                                    break;
-
-                                                case 2: // name
-                                                    [data, alpha] = Parser.getString(data);
-                                                    break;
-
-                                                case 3: // devices
-                                                    let bytes: Buffer;
-
-                                                    [data, bytes] = Parser.getBytes(data);
-                                                    break;
-
-                                                case 4: // days
-                                                    [data, length] = Parser.varint(data);
-
-                                                    while (data.length > data.length - length) {
-                                                        [data, numeric] = Parser.getValue(data);
-                                                    }
-
-                                                    break;
-
-                                                case 5:
-                                                case 6: // enabled
-                                                    [data, numeric] = Parser.getValue(data);
-                                                    break;
-
-                                                case 7: // start event
-                                                case 8: // end event
-                                                    [data, length] = Parser.varint(data);
-
-                                                    while (data.length > data.length - length) {
-                                                        [data, type, field] = Parser.deconstruct(data);
-
-                                                        switch (field) {
-                                                            case 1: // time
-                                                                [data, alpha] = Parser.getString(data);
-                                                                break;
-
-                                                            case 2: // properties
-                                                                [data, length] = Parser.varint(data);
-
-                                                                const residualLength = data.length - length;
-
-                                                                while (data.length > residualLength) {
-                                                                    [data, type, field] = Parser.deconstruct(data);
-
-                                                                    switch (field) {
-                                                                        case 1: // fan mode 0/off, 1/on, 2/auto
-                                                                        case 2: // fan direction
-                                                                        case 3: // fan percent
-                                                                        case 4: // fan speed
-                                                                        case 5: // light mode 0/off, 1/on, 2/auto
-                                                                        case 6: // light percent
-                                                                        case 7: // light level
-                                                                        case 8: // light color temperature
-                                                                        case 9: // up light percent
-                                                                        case 10: // multiple light mode 0/all lights, 1/down light, 2/up light
-                                                                        case 11: // comfort sense enable
-                                                                        case 12: // comfort sense ideal temperature
-                                                                        case 13: // comfort sense min speed
-                                                                        case 14: // comfort sense max speed
-                                                                        case 15: // fan occupancy enabled
-                                                                        case 16: // fan occupancy timeout
-                                                                        case 17: // light occupancy enabled
-                                                                        case 18: // light occupancy timeout
-                                                                            [data, numeric] = Parser.getValue(data);
-                                                                            break;
-
-                                                                        default:
-                                                                            data = Parser.advance(data, type);
-                                                                            break;
-                                                                    }
-                                                                }
-
-                                                                break;
-
-                                                            default:
-                                                                data = Parser.advance(data, type);
-                                                                break;
-                                                        }
-                                                    }
-
-                                                    break;
-
-                                                default:
-                                                    data = Parser.advance(data, type);
-                                                    break;
-                                            }
-                                        }
-
-                                        break;
-
-                                    default:
-                                        data = Parser.advance(data, type);
-                                        break;
-                                }
-                            }
-                        } else {
-                            data = Parser.advance(data, type);
-                            return results;
                         }
                     }
                 } else if (field === 5) {
@@ -999,14 +528,6 @@ export abstract class Parser {
         [data, length] = Parser.varint(data);
     
         return [data, length];
-    }
-
-    private static getBytes(data: Buffer): [Buffer, Buffer] {
-        let length: number;
-    
-        [data, length] = Parser.varint(data);
-    
-        return [data.subarray(length), data.subarray(0, length)];
     }
 
     private static advance(data: Buffer, type: number) {

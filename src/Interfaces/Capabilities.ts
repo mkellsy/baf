@@ -10,12 +10,8 @@ export interface Capabilities {
     temperature: boolean;
     humidity: boolean;
     occupancy: boolean;
-    light: boolean;
     luminance: boolean;
-    indicator: boolean;
-    standby: boolean;
     speaker: boolean;
-    piezo: boolean;
     uvc: boolean;
     eco: boolean;
 }
