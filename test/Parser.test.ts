@@ -6,7 +6,7 @@ import { Parser } from "../src/Parser";
 
 chai.use(sinonChai);
 
-describe("Parser", function () {
+describe("Parser", () => {
     describe("stuff()", () => {
         it("should return the propper stuffed number array", async () => {
             let result: any;

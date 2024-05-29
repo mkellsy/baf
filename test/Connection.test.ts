@@ -9,7 +9,7 @@ import { Connection } from "../src/Connection";
 chai.use(sinonChai);
 registerNode();
 
-describe("Connection", function () {
+describe("Connection", () => {
     let optionsStub: any;
     let socketStub: any;
     let chunkifyStub: any;
