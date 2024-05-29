@@ -81,7 +81,7 @@ export abstract class Parser {
      *
      * @returns An object containing the chunks and a count.
      */
-    public static chunkify(data: Buffer): { chunks: Buffer[], count: number } {
+    public static chunkify(data: Buffer): { chunks: Buffer[]; count: number } {
         let index = 0;
         let count = 0;
 
@@ -414,7 +414,7 @@ export abstract class Parser {
 
                                             results.software = alpha;
                                         }
-                                        
+
                                         if (field === 3) {
                                             [data, alpha] = Parser.getString(data);
 
@@ -570,9 +570,9 @@ export abstract class Parser {
      */
     private static getString(data: Buffer): [Buffer, string] {
         let length: number;
-    
+
         [data, length] = Parser.varint(data);
-    
+
         return [data.subarray(length), data.subarray(0, length).toString()];
     }
 
@@ -581,9 +581,9 @@ export abstract class Parser {
      */
     private static getValue(data: Buffer): [Buffer, number] {
         let length: number;
-    
+
         [data, length] = Parser.varint(data);
-    
+
         return [data, length];
     }
 
@@ -592,21 +592,19 @@ export abstract class Parser {
      */
     private static advance(data: Buffer, type: number) {
         if (type === 0) {
-            let value: number;
-    
-            [data, value] = Parser.varint(data);
+            [data] = Parser.varint(data);
         } else if (type === 1) {
             data = data.subarray(8);
         } else if (type === 2) {
             let length: number;
-    
+
             [data, length] = Parser.varint(data);
-    
+
             data = data.subarray(length);
         } else if (type === 5) {
             data = data.subarray(4);
         }
-    
+
         return data;
     }
 
@@ -615,23 +613,23 @@ export abstract class Parser {
      */
     private static varint(data: Buffer): [Buffer, number] {
         let key = 0;
-    
+
         const fields: number[] = [];
-    
+
         for (let index = 0; index < data.length; index++) {
             if (data[index] & 0x80) {
                 fields.push(data[index] & 0x7f);
             } else {
                 fields.push(data[index] & 0x7f);
-    
+
                 break;
             }
         }
-    
+
         for (let index = fields.length - 1; index >= 0; index--) {
             key = (key << 7) | fields[index];
         }
-    
+
         return [data.subarray(fields.length), key];
     }
 
@@ -640,23 +638,23 @@ export abstract class Parser {
      */
     private static deconstruct(data: Buffer): [Buffer, number, number] {
         let key = 0;
-    
+
         const fields: number[] = [];
-    
+
         for (let index = 0; index < data.length; index++) {
             if (data[index] & 0x80) {
                 fields.push(data[index] & 0x7f);
             } else {
                 fields.push(data[index] & 0x7f);
-    
+
                 break;
             }
         }
-    
+
         for (let index = fields.length - 1; index >= 0; index--) {
             key = (key << 7) | fields[index];
         }
-    
+
         return [data.subarray(fields.length), key & 0x07, key >>> 3];
     }
 }

@@ -191,9 +191,7 @@ describe("Connection", () => {
 
         it("should not emit when garbage data is recieved", async () => {
             chunkifyStub = {
-                chunks: [
-                    Buffer.from([2, 3, 4, 0xc0]),
-                ],
+                chunks: [Buffer.from([2, 3, 4, 0xc0])],
                 count: 1,
             };
 

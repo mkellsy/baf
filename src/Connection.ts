@@ -60,6 +60,8 @@ export class Connection extends EventEmitter<{
 
     /**
      * The id of the device.
+     *
+     * @returns The id of the device.
      */
     public get id(): string {
         return this.uuid;
@@ -90,7 +92,7 @@ export class Connection extends EventEmitter<{
                     this.emit("Connect", this);
 
                     resolve();
-                }
+                },
             );
         });
     }
@@ -127,7 +129,7 @@ export class Connection extends EventEmitter<{
      * Parses data messages from the socket.
      */
     private onSocketData = (data: Buffer): void => {
-        let results: Record<string, any> = {};
+        let results: Record<string, unknown> = {};
 
         const fragment = Parser.chunkify(data);
 
@@ -169,7 +171,7 @@ export class Connection extends EventEmitter<{
     /*
      * Compares two objects to see if they are equal.
      */
-    private equals(left: any, right: any): boolean {
+    private equals(left: unknown, right: unknown): boolean {
         return JSON.stringify(left) === JSON.stringify(right);
     }
 
@@ -187,9 +189,9 @@ export class Connection extends EventEmitter<{
     /*
      * Updates the device state.
      */
-    private updateDevice(results: Record<string, any>): void {
+    private updateDevice(results: Record<string, unknown>): void {
         if (results.firmware) {
-            this.current = { ...this.current, firmware: results.firmware };
+            this.current = { ...this.current, firmware: (results as Record<string, string>).firmware };
         }
 
         if (results.capabilities) {
@@ -197,7 +199,7 @@ export class Connection extends EventEmitter<{
         }
 
         if (results.mac) {
-            this.current = { ...this.current, mac: results.mac };
+            this.current = { ...this.current, mac: (results as Record<string, string>).mac };
         }
 
         if (
@@ -224,16 +226,16 @@ export class Connection extends EventEmitter<{
     /*
      * Updates the fan state.
      */
-    private updateFanState(results: Record<string, any>): void {
+    private updateFanState(results: Record<string, unknown>): void {
         if (!this.supported("fan")) {
             return;
         }
 
-        if (results.fan?.state == null) {
+        if ((results.fan as Record<string, FanState | undefined>)?.state == null) {
             return;
         }
 
-        this.state.fan = results.fan.state;
+        this.state.fan = (results.fan as Record<string, FanState | undefined>).state;
 
         this.emit("Response", "FanState", {
             id: this.uuid,
@@ -244,16 +246,19 @@ export class Connection extends EventEmitter<{
     /*
      * Updates the light state.
      */
-    private updateLightState(target: "downlight" | "uplight", results: Record<string, any>): void {
+    private updateLightState(target: "downlight" | "uplight", results: Record<string, unknown>): void {
         if (!this.supported(target)) {
             return;
         }
 
-        if (results.light?.target !== target || results.light.state == null) {
+        if (
+            (results.light as Record<string, string>)?.target !== target ||
+            (results.light as Record<string, LightState | undefined>).state == null
+        ) {
             return;
         }
 
-        this.state[target] = results.light.state;
+        this.state[target] = (results.light as Record<string, LightState | undefined>).state;
 
         this.emit("Response", "LightState", {
             id: this.uuid,
@@ -265,7 +270,7 @@ export class Connection extends EventEmitter<{
     /*
      * Updates the sensor state.
      */
-    private updateSensorState(results: Record<string, any>): void {
+    private updateSensorState(results: Record<string, unknown>): void {
         if (!this.supported("temperature") && !this.supported("humidity")) {
             return;
         }
@@ -274,7 +279,7 @@ export class Connection extends EventEmitter<{
             return;
         }
 
-        this.state.sensor = results.sensor.state;
+        this.state.sensor = (results.sensor as Record<string, SensorState | undefined>).state;
 
         this.emit("Response", "SensorState", {
             id: this.uuid,

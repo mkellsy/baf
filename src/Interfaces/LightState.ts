@@ -20,7 +20,7 @@ export interface LightState {
     /**
      * The current color temprature.
      */
-    luminance:  number;
+    luminance: number;
 
     /**
      * Is the light on.
