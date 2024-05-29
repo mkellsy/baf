@@ -19,5 +19,11 @@ module.exports = {
                 "@typescript-eslint/no-explicit-any": 0,
             },
         },
+        {
+            files: ["*.test.ts"],
+            rules: {
+                "@typescript-eslint/no-explicit-any": 0,
+            },
+        },
     ],
 };
