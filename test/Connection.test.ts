@@ -17,6 +17,7 @@ describe("Connection", () => {
     let unstuffStub: any;
     let emitStub: any;
     let parseStub: any;
+    let writeStub: any;
 
     let connection: Connection;
     let connectionType: typeof Connection;
@@ -65,10 +66,16 @@ describe("Connection", () => {
         stuffStub = Buffer.from([0, 1, 2, 3, 4]);
         unstuffStub = Buffer.from([0, 1, 2, 3, 4]);
 
+        writeStub = { buffer: undefined, callback: undefined };
+
         socketStub = {
             on: sinon.stub(),
             destroy: sinon.stub(),
-            write: sinon.stub(),
+
+            write(buffer: any, callback: Function) {
+                writeStub.buffer = buffer;
+                writeStub.callback = callback;
+            },
         };
 
         chunkifyStub = {
@@ -119,18 +126,33 @@ describe("Connection", () => {
     });
 
     describe("write()", () => {
-        it("should write to the socket if connection is not established", () => {
-            connection.write([0, 1, 2, 3, 4]);
-
-            expect(socketStub.write).to.not.be.called;
+        it("should not write to the socket if connection is not established", () => {
+            connection.write([0, 1, 2, 3, 4]).catch((error) => {
+                expect(error.message).to.equal("connection not established");
+                expect(writeStub.buffer).to.be.undefined;
+            });
         });
 
-        it("should write a stuffed and marked buffer to the socket", async () => {
-            await connection.connect();
+        it("should write a stuffed and marked buffer to the socket", (done) => {
+            connection.connect().then(() => {
+                connection.write([0, 1, 2, 3, 4]).then(() => {
+                    expect(writeStub.buffer).to.deep.equal(Buffer.from([0xc0, 0x00, 0xc0]));
+                    done();
+                });
 
-            connection.write([0, 1, 2, 3, 4]);
+                writeStub.callback();
+            });
+        });
 
-            expect(socketStub.write).to.be.calledWith(Buffer.from([0xc0, 0x00, 0xc0]));
+        it("should reject the write promise when the connection returns an error", (done) => {
+            connection.connect().then(() => {
+                connection.write([0, 1, 2, 3, 4]).catch((error) => {
+                    expect(error).to.equal("TEST ERROR");
+                    done();
+                });
+
+                writeStub.callback("TEST ERROR");
+            });
         });
     });
 

@@ -118,11 +118,23 @@ export class Connection extends EventEmitter<{
      *
      * @param buffer The command as a hex number array.
      */
-    public write(buffer: number[]): void {
-        const stuffed = Parser.stuff(buffer);
-        const marked = Buffer.from([0xc0].concat(stuffed).concat([0xc0]));
+    public write(buffer: number[]): Promise<void> {
+        return new Promise((resolve, reject) => {
+            const stuffed = Parser.stuff(buffer);
+            const marked = Buffer.from([0xc0].concat(stuffed).concat([0xc0]));
 
-        this.socket?.write(marked);
+            if (this.socket == null) {
+                return reject(new Error("connection not established"));
+            }
+
+            this.socket.write(marked, (error) => {
+                if (error != null) {
+                    reject(error);
+                } else {
+                    resolve();
+                }
+            });
+        });
     }
 
     /*
