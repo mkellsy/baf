@@ -1,5 +1,5 @@
 {
-    "version": "1.5.3",
+    "version": "1.5.4",
     "name": "@mkellsy/baf",
     "displayName": "Big Ass Fans",
     "description": "Big Ass Fans protocol",
@@ -23,7 +23,7 @@
     },
     "dependencies": {
         "@mkellsy/event-emitter": "^1.5.2",
-        "@mkellsy/hap-device": "^1.5.3"
+        "@mkellsy/hap-device": "^1.5.9"
     },
     "devDependencies": {
         "@eslint/js": "^9.2.0",

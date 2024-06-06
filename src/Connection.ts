@@ -8,6 +8,9 @@ import { Parser } from "./Parser";
 import { ResponseTypes } from "./Interfaces/ResponseTypes";
 import { SensorState } from "./Interfaces/SensorState";
 
+const SOCKET_PORT = 31415;
+const REACHABLE_TIMEOUT = 1_000;
+
 /**
  * Connects to a device with the provided ip address, id, name and model.
  */
@@ -24,7 +27,6 @@ export class Connection extends EventEmitter<{
     private name: string;
     private model: string;
     private host: string;
-    private port: number;
 
     private device?: Partial<Capabilities>;
     private current?: Partial<Capabilities>;
@@ -55,7 +57,32 @@ export class Connection extends EventEmitter<{
         this.model = model;
 
         this.host = host;
-        this.port = 31415;
+    }
+
+    /**
+     * Detects if a host is reachable.
+     *
+     * @param host Address of the device.
+     *
+     * @returns True if the device is rechable, false if not.
+     */
+    public static reachable(host: string): Promise<boolean> {
+        return new Promise((resolve) => {
+            const socket = new Net.Socket();
+
+            const response = (success: boolean) => {
+                socket.destroy();
+
+                resolve(success);
+            };
+
+            socket.setTimeout(REACHABLE_TIMEOUT);
+
+            socket.once("error", () => response(false));
+            socket.once("timeout", () => response(false));
+
+            socket.connect(SOCKET_PORT, host, () => response(true));
+        });
     }
 
     /**
@@ -81,7 +108,7 @@ export class Connection extends EventEmitter<{
             this.socket = Net.connect(
                 {
                     host: this.host,
-                    port: this.port,
+                    port: SOCKET_PORT,
                     family: 4,
                 },
                 () => {

@@ -11,6 +11,7 @@ registerNode();
 
 describe("Connection", () => {
     let optionsStub: any;
+    let reachableStub: any;
     let socketStub: any;
     let chunkifyStub: any;
     let stuffStub: any;
@@ -31,6 +32,23 @@ describe("Connection", () => {
                     setTimeout(() => callback(), 0);
 
                     return socketStub;
+                },
+                Socket: class {
+                    setTimeout = (timeout: number): void => {
+                        reachableStub.timeout = timeout;
+                    };
+
+                    once = (event: string, callback: Function): void => {
+                        reachableStub.callbacks[event] = callback;
+                    };
+
+                    connect = (port: number, host: string, callback: Function): void => {
+                        reachableStub.port = port;
+                        reachableStub.host = host;
+                        reachableStub.callbacks.connect = callback;
+                    };
+
+                    destroy = reachableStub.destroy;
                 },
             },
             "@mkellsy/event-emitter": {
@@ -68,8 +86,19 @@ describe("Connection", () => {
 
         writeStub = { buffer: undefined, callback: undefined };
 
+        reachableStub = {
+            callbacks: {},
+            timeout: 0,
+
+            port: 0,
+            host: undefined,
+
+            destroy: sinon.stub(),
+        };
+
         socketStub = {
             on: sinon.stub(),
+            once: sinon.stub(),
             destroy: sinon.stub(),
 
             write(buffer: any, callback: Function) {
@@ -92,6 +121,56 @@ describe("Connection", () => {
 
     it("should store the connection id", () => {
         expect(connection.id).to.equal("id");
+    });
+
+    describe("reachable()", () => {
+        it("should return true if a host can be connected to", (done) => {
+            connectionType.reachable("HOST").then((reachable) => {
+                expect(reachable).to.be.true;
+
+                expect(reachableStub.timeout).to.equal(1000);
+                expect(reachableStub.port).to.equal(31415);
+                expect(reachableStub.host).to.equal("HOST");
+
+                expect(reachableStub.destroy).to.be.called;
+
+                done();
+            });
+
+            reachableStub.callbacks.connect();
+        });
+
+        it("should return false if a host connection attempt timesout", (done) => {
+            connectionType.reachable("HOST").then((reachable) => {
+                expect(reachable).to.be.false;
+
+                expect(reachableStub.timeout).to.equal(1000);
+                expect(reachableStub.port).to.equal(31415);
+                expect(reachableStub.host).to.equal("HOST");
+
+                expect(reachableStub.destroy).to.be.called;
+
+                done();
+            });
+
+            reachableStub.callbacks.timeout();
+        });
+
+        it("should return false if a host connection emits an error", (done) => {
+            connectionType.reachable("HOST").then((reachable) => {
+                expect(reachable).to.be.false;
+
+                expect(reachableStub.timeout).to.equal(1000);
+                expect(reachableStub.port).to.equal(31415);
+                expect(reachableStub.host).to.equal("HOST");
+
+                expect(reachableStub.destroy).to.be.called;
+
+                done();
+            });
+
+            reachableStub.callbacks.error();
+        });
     });
 
     describe("connect()", () => {
