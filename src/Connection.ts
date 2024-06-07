@@ -101,7 +101,7 @@ export class Connection extends EventEmitter<{
      * await connection.connect();
      * ```
      */
-    public async connect(): Promise<void> {
+    public connect(): Promise<void> {
         this.teardown = false;
 
         return new Promise((resolve) => {
