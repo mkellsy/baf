@@ -1,4 +1,4 @@
-import Net from "net";
+import net from "net";
 
 import { Capabilities } from "./Interfaces/Capabilities";
 import { EventEmitter } from "@mkellsy/event-emitter";
@@ -20,7 +20,7 @@ export class Connection extends EventEmitter<{
     Response: <K extends keyof ResponseTypes>(type: K, response: ResponseTypes[K]) => void;
     Error: (error: Error) => void;
 }> {
-    private socket?: Net.Socket;
+    private socket?: net.Socket;
     private teardown: boolean = false;
 
     private uuid: string;
@@ -68,7 +68,7 @@ export class Connection extends EventEmitter<{
      */
     public static reachable(host: string): Promise<boolean> {
         return new Promise((resolve) => {
-            const socket = new Net.Socket();
+            const socket = new net.Socket();
 
             const response = (success: boolean) => {
                 socket.destroy();
@@ -105,7 +105,7 @@ export class Connection extends EventEmitter<{
         this.teardown = false;
 
         return new Promise((resolve) => {
-            this.socket = Net.connect(
+            this.socket = net.connect(
                 {
                     host: this.host,
                     port: SOCKET_PORT,
