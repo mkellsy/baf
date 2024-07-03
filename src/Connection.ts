@@ -204,6 +204,10 @@ export class Connection extends EventEmitter<{
      * Emits an error event when the socket errors.
      */
     private onSocketError = (error: Error): void => {
+        if (!this.teardown) {
+            this.connect();
+        }
+
         this.emit("Error", error);
     };
 

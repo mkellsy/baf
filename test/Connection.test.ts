@@ -271,7 +271,20 @@ describe("Connection", () => {
             };
         });
 
-        it("should emit an error event when the socket has an error", async () => {
+        it("should emit an error event and attempt a reconnect when the socket has an error", async () => {
+            await connection.connect();
+
+            emitStub.resetHistory();
+            callbacks.error("test error");
+
+            expect(emitStub).to.be.calledWith("Error", "test error");
+
+            setTimeout(() => {
+                expect(emitStub).to.be.calledWith("Connect", sinon.match.any);
+            }, 250);
+        });
+
+        it("should emit an error event even after disconnecting", async () => {
             await connection.connect();
 
             connection.disconnect();
