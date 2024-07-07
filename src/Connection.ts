@@ -109,6 +109,7 @@ export class Connection extends EventEmitter<{
                 {
                     host: this.host,
                     port: SOCKET_PORT,
+                    keepAlive: true,
                     family: 4,
                 },
                 () => {
