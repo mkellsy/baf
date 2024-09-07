@@ -113,6 +113,8 @@ export class Connection extends EventEmitter<{
                     family: 4,
                 },
                 () => {
+                    this.socket!.setKeepAlive(true, 5_000);
+
                     this.socket!.on("data", this.onSocketData);
                     this.socket!.on("error", this.onSocketError);
                     this.socket!.on("end", this.onSocketDisconnect);

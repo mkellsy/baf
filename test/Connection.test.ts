@@ -100,6 +100,7 @@ describe("Connection", () => {
             on: sinon.stub(),
             once: sinon.stub(),
             destroy: sinon.stub(),
+            setKeepAlive: sinon.stub(),
 
             write(buffer: any, callback: Function) {
                 writeStub.buffer = buffer;
@@ -174,7 +175,7 @@ describe("Connection", () => {
     });
 
     describe("connect()", () => {
-        it("should define listeners and emit a Connect event", async () => {
+        it("should define listeners, keep alive, and emit a Connect event", async () => {
             await connection.connect();
 
             expect(optionsStub.host).to.equal("host");
@@ -183,6 +184,8 @@ describe("Connection", () => {
             expect(socketStub.on).to.be.calledWith("data", sinon.match.any);
             expect(socketStub.on).to.be.calledWith("error", sinon.match.any);
             expect(socketStub.on).to.be.calledWith("end", sinon.match.any);
+
+            expect(socketStub.setKeepAlive).to.be.calledWith(true, 5_000);
 
             expect(emitStub).to.be.calledWith("Connect", sinon.match.any);
         });
