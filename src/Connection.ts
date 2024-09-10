@@ -81,7 +81,14 @@ export class Connection extends EventEmitter<{
             socket.once("error", () => response(false));
             socket.once("timeout", () => response(false));
 
-            socket.connect(SOCKET_PORT, host, () => response(true));
+            socket.connect(
+                {
+                    host,
+                    port: SOCKET_PORT,
+                    family: 4,
+                },
+                () => response(true),
+            );
         });
     }
 
@@ -105,7 +112,17 @@ export class Connection extends EventEmitter<{
         this.teardown = false;
 
         return new Promise((resolve) => {
-            this.socket = net.connect(
+            this.socket = new net.Socket();
+
+            this.socket.setKeepAlive(true, 5_000);
+            this.socket.setTimeout(10_000);
+
+            this.socket.on("data", this.onSocketData);
+            this.socket.on("error", this.onSocketError);
+            this.socket.on("end", this.onSocketDisconnect);
+            this.socket.on("timeout", this.onSocketTimeout);
+
+            this.socket.connect(
                 {
                     host: this.host,
                     port: SOCKET_PORT,
@@ -113,12 +130,6 @@ export class Connection extends EventEmitter<{
                     family: 4,
                 },
                 () => {
-                    this.socket!.setKeepAlive(true, 5_000);
-
-                    this.socket!.on("data", this.onSocketData);
-                    this.socket!.on("error", this.onSocketError);
-                    this.socket!.on("end", this.onSocketDisconnect);
-
                     this.emit("Connect", this);
 
                     resolve();
@@ -193,9 +204,19 @@ export class Connection extends EventEmitter<{
     };
 
     /*
+     * Attempts to reconnect after a timeout
+     */
+    private onSocketTimeout = (): void => {
+        this.onSocketDisconnect();
+    };
+
+    /*
      * Reconnects to the device if the connection is lost.
      */
     private onSocketDisconnect = (): void => {
+        this.socket?.destroy();
+        this.socket = undefined;
+
         if (!this.teardown) {
             this.connect();
         } else {

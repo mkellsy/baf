@@ -11,7 +11,6 @@ registerNode();
 
 describe("Connection", () => {
     let optionsStub: any;
-    let reachableStub: any;
     let socketStub: any;
     let chunkifyStub: any;
     let stuffStub: any;
@@ -26,29 +25,15 @@ describe("Connection", () => {
     before(() => {
         connectionType = proxy(() => require("../src/Connection").Connection, {
             net: {
-                connect: (options: any, callback: Function) => {
-                    optionsStub = options;
-
-                    setTimeout(() => callback(), 0);
-
-                    return socketStub;
-                },
+                connect: (...args: any[]) => socketStub.connect(...args),
                 Socket: class {
-                    setTimeout = (timeout: number): void => {
-                        reachableStub.timeout = timeout;
-                    };
-
-                    once = (event: string, callback: Function): void => {
-                        reachableStub.callbacks[event] = callback;
-                    };
-
-                    connect = (port: number, host: string, callback: Function): void => {
-                        reachableStub.port = port;
-                        reachableStub.host = host;
-                        reachableStub.callbacks.connect = callback;
-                    };
-
-                    destroy = reachableStub.destroy;
+                    destroy = (...args: any[]) => socketStub.destroy(...args);
+                    setKeepAlive = (...args: any[]) => socketStub.setKeepAlive(...args);
+                    connect = (...args: any[]) => socketStub.connect(...args);
+                    write = (...args: any[]) => socketStub.write(...args);
+                    setTimeout = (...args: any[]) => socketStub.setTimeout(...args);
+                    on = (...args: any[]) => socketStub.on(...args);
+                    once = (...args: any[]) => socketStub.once(...args);
                 },
             },
             "@mkellsy/event-emitter": {
@@ -86,21 +71,39 @@ describe("Connection", () => {
 
         writeStub = { buffer: undefined, callback: undefined };
 
-        reachableStub = {
+        socketStub = {
             callbacks: {},
             timeout: 0,
 
             port: 0,
             host: undefined,
 
-            destroy: sinon.stub(),
-        };
+            on: sinon.stub().callsFake((event: string, callback: Function): void => {
+                socketStub.callbacks[event] = callback;
+            }),
 
-        socketStub = {
-            on: sinon.stub(),
-            once: sinon.stub(),
+            once: sinon.stub().callsFake((event: string, callback: Function): void => {
+                socketStub.callbacks[event] = callback;
+            }),
+
             destroy: sinon.stub(),
+
+            setTimeout: sinon.stub((timeout: number): void => {
+                socketStub.timeout = timeout;
+            }),
+
             setKeepAlive: sinon.stub(),
+
+            connect: (options: any, callback: Function) => {
+                socketStub.port = options.port;
+                socketStub.host = options.host;
+                socketStub.callbacks.connect = callback;
+                optionsStub = options;
+
+                setTimeout(() => callback(), 0);
+
+                return socketStub;
+            },
 
             write(buffer: any, callback: Function) {
                 writeStub.buffer = buffer;
@@ -129,48 +132,48 @@ describe("Connection", () => {
             connectionType.reachable("HOST").then((reachable) => {
                 expect(reachable).to.be.true;
 
-                expect(reachableStub.timeout).to.equal(1000);
-                expect(reachableStub.port).to.equal(31415);
-                expect(reachableStub.host).to.equal("HOST");
+                expect(socketStub.timeout).to.equal(1000);
+                expect(socketStub.port).to.equal(31415);
+                expect(socketStub.host).to.equal("HOST");
 
-                expect(reachableStub.destroy).to.be.called;
+                expect(socketStub.destroy).to.be.called;
 
                 done();
             });
 
-            reachableStub.callbacks.connect();
+            socketStub.callbacks.connect();
         });
 
         it("should return false if a host connection attempt timesout", (done) => {
             connectionType.reachable("HOST").then((reachable) => {
                 expect(reachable).to.be.false;
 
-                expect(reachableStub.timeout).to.equal(1000);
-                expect(reachableStub.port).to.equal(31415);
-                expect(reachableStub.host).to.equal("HOST");
+                expect(socketStub.timeout).to.equal(1000);
+                expect(socketStub.port).to.equal(31415);
+                expect(socketStub.host).to.equal("HOST");
 
-                expect(reachableStub.destroy).to.be.called;
+                expect(socketStub.destroy).to.be.called;
 
                 done();
             });
 
-            reachableStub.callbacks.timeout();
+            socketStub.callbacks.timeout();
         });
 
         it("should return false if a host connection emits an error", (done) => {
             connectionType.reachable("HOST").then((reachable) => {
                 expect(reachable).to.be.false;
 
-                expect(reachableStub.timeout).to.equal(1000);
-                expect(reachableStub.port).to.equal(31415);
-                expect(reachableStub.host).to.equal("HOST");
+                expect(socketStub.timeout).to.equal(1000);
+                expect(socketStub.port).to.equal(31415);
+                expect(socketStub.host).to.equal("HOST");
 
-                expect(reachableStub.destroy).to.be.called;
+                expect(socketStub.destroy).to.be.called;
 
                 done();
             });
 
-            reachableStub.callbacks.error();
+            socketStub.callbacks.error();
         });
     });
 
@@ -238,6 +241,35 @@ describe("Connection", () => {
         });
     });
 
+    describe("onSocketTimeout()", () => {
+        const callbacks: Record<string, Function> = {};
+
+        beforeEach(async () => {
+            socketStub.on = (event: string, callback: Function) => {
+                callbacks[event] = callback;
+            };
+        });
+
+        it("should attempt to reconnect if not tearing down", async () => {
+            await connection.connect();
+
+            callbacks.timeout();
+
+            expect(emitStub).to.not.be.calledWith("Disconnect");
+        });
+
+        it("should emit a disconnect event when the socket timesout", async () => {
+            await connection.connect();
+
+            connection.disconnect();
+
+            callbacks.timeout();
+            callbacks.timeout();
+
+            expect(emitStub).to.be.calledWith("Disconnect");
+        });
+    });
+
     describe("onSocketDisconnect()", () => {
         const callbacks: Record<string, Function> = {};
 
@@ -247,9 +279,10 @@ describe("Connection", () => {
             };
         });
 
-        it("should attempt to reconnect id not tearing down", async () => {
+        it("should attempt to reconnect if not tearing down", async () => {
             await connection.connect();
 
+            callbacks.end();
             callbacks.end();
 
             expect(emitStub).to.not.be.calledWith("Disconnect");
@@ -259,6 +292,8 @@ describe("Connection", () => {
             await connection.connect();
 
             connection.disconnect();
+
+            callbacks.end();
             callbacks.end();
 
             expect(emitStub).to.be.calledWith("Disconnect");
